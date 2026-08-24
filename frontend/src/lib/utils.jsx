@@ -1,28 +1,29 @@
 // Shared utility helpers across the app
 
 export const STATUS_META = {
-  CREATED:           { label: 'Order Created',       icon: '', color: 'created' },
-  AGENT_ASSIGNED:    { label: 'Agent Assigned',       icon: '', color: 'agent_assigned' },
-  PICKED_UP:         { label: 'Picked Up',            icon: '', color: 'picked_up' },
-  IN_TRANSIT:        { label: 'In Transit',           icon: '', color: 'in_transit' },
-  OUT_FOR_DELIVERY:  { label: 'Out for Delivery',     icon: '', color: 'out_for_delivery' },
-  DELIVERED:         { label: 'Delivered',            icon: '', color: 'delivered' },
-  FAILED:            { label: 'Delivery Failed',      icon: '', color: 'failed' },
-  RESCHEDULED:       { label: 'Rescheduled',          icon: '', color: 'rescheduled' },
-  CANCELLED:         { label: 'Cancelled',            icon: '', color: 'cancelled' },
+  CREATED:          { label: 'Created',           color: 'created' },
+  AGENT_ASSIGNED:   { label: 'Agent Assigned',    color: 'agent_assigned' },
+  PICKED_UP:        { label: 'Picked Up',         color: 'picked_up' },
+  IN_TRANSIT:       { label: 'In Transit',        color: 'in_transit' },
+  OUT_FOR_DELIVERY: { label: 'Out for Delivery',  color: 'out_for_delivery' },
+  DELIVERED:        { label: 'Delivered',         color: 'delivered' },
+  FAILED:           { label: 'Failed',            color: 'failed' },
+  RESCHEDULED:      { label: 'Rescheduled',       color: 'rescheduled' },
+  CANCELLED:        { label: 'Cancelled',         color: 'cancelled' },
 };
 
 export function StatusBadge({ status }) {
-  const meta = STATUS_META[status] || { label: status, icon: '', color: 'created' };
+  const meta = STATUS_META[status] || { label: status, color: 'created' };
   return (
-    <span className={`badge badge-${meta.color.toLowerCase()}`}>
-      {meta.icon ? `${meta.icon} ` : ''}{meta.label}
+    <span className={`badge badge-${meta.color}`}>
+      <span className="badge-dot" />
+      <span>{meta.label}</span>
     </span>
   );
 }
 
 export function formatCurrency(amount) {
-  return `₹${Number(amount || 0).toFixed(2)}`;
+  return `₹${Number(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function formatDate(dateStr) {
