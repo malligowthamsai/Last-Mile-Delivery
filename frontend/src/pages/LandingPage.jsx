@@ -1,334 +1,277 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { 
+  Package, 
+  Search, 
+  ArrowRight, 
+  Truck, 
+  MapPin, 
+  Zap, 
+  ShieldCheck, 
+  Layers, 
+  BarChart3, 
+  Clock,
+  CheckCircle2
+} from 'lucide-react';
 
-/* ── Feature / Service data ───────────────────────────────── */
-const services = [
+const features = [
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-      </svg>
-    ),
+    icon: <Clock size={22} className="text-blue-600" />,
     title: 'Real-Time Tracking',
-    desc: 'Track every shipment live — from pickup to doorstep. Your customers get instant updates at every milestone.',
-    accent: '#6366f1',
+    desc: 'Live milestone updates from package pickup to doorstep delivery. Both sender and receiver stay informed.'
   },
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-      </svg>
-    ),
-    title: 'Smart Dispatch',
-    desc: 'Auto-assign orders to the nearest available agent using our intelligent zone-based routing engine.',
-    accent: '#06b6d4',
+    icon: <Zap size={22} className="text-amber-600" />,
+    title: 'Intelligent Auto-Dispatch',
+    desc: 'Automated agent assignment engine routes parcels to the nearest available fleet agent in the pickup zone.'
   },
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-      </svg>
-    ),
-    title: 'Dynamic Pricing',
-    desc: 'Zone-based rate cards with volumetric weight billing. B2B and B2C rates, COD surcharge support built in.',
-    accent: '#10b981',
+    icon: <Layers size={22} className="text-emerald-600" />,
+    title: 'Zone-Based Pricing',
+    desc: 'Dynamic volumetric weight calculation with custom B2B/B2C rate cards and COD surcharge support.'
   },
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-    ),
-    title: 'Multi-Role Access',
-    desc: 'Separate dashboards for Admins, Agents and Customers — each with tailored tools and permissions.',
-    accent: '#f59e0b',
+    icon: <ShieldCheck size={22} className="text-indigo-600" />,
+    title: 'Role-Based Access',
+    desc: 'Tailored portals for operations Admins, field Agents, and business or retail Customers.'
   },
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
-    ),
-    title: 'Live Analytics',
-    desc: 'Dashboard overview with order status distribution, agent availability charts and KPIs at a glance.',
-    accent: '#8b5cf6',
+    icon: <BarChart3 size={22} className="text-purple-600" />,
+    title: 'Live Operations KPIs',
+    desc: 'Real-time metrics on delivery throughput, pending dispatches, and agent availability.'
   },
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-      </svg>
-    ),
-    title: 'Zone Management',
-    desc: 'Map pincodes to delivery zones, configure coverage areas, and expand your service network in minutes.',
-    accent: '#ef4444',
-  },
-];
-
-const stats = [
-  { value: '99.4%', label: 'On-Time Delivery' },
-  { value: '< 2 min', label: 'Agent Assignment' },
-  { value: 'Live', label: 'Order Tracking' },
-  { value: 'Multi-Zone', label: 'Coverage Support' },
+    icon: <MapPin size={22} className="text-rose-600" />,
+    title: 'Granular Coverage Areas',
+    desc: 'Map individual pincodes to delivery zones to dynamically manage urban and suburban delivery corridors.'
+  }
 ];
 
 const steps = [
-  { num: '01', title: 'Place an Order', desc: 'Enter pickup and delivery addresses, package dimensions and get an instant price quote.' },
-  { num: '02', title: 'Smart Assignment', desc: 'Our engine auto-assigns the best available agent in the pickup zone within seconds.' },
-  { num: '03', title: 'Track Live', desc: 'Real-time status updates from pickup through transit to successful doorstep delivery.' },
+  {
+    step: '01',
+    title: 'Create & Quote',
+    desc: 'Enter sender and receiver pincodes along with parcel dimensions for instant volumetric pricing.'
+  },
+  {
+    step: '02',
+    title: 'Intelligent Dispatch',
+    desc: 'The routing engine identifies active fleet agents in the zone and dispatches the pickup automatically.'
+  },
+  {
+    step: '03',
+    title: 'Doorstep Delivery',
+    desc: 'Monitor live status changes with timestamps until the order is safely delivered to the destination.'
+  }
 ];
 
 export default function LandingPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [trackId, setTrackId] = useState('');
 
   const dashboardLink =
     user?.role === 'ADMIN' ? '/admin' :
     user?.role === 'AGENT' ? '/agent' :
     user ? '/dashboard' : null;
 
+  const handleTrackSubmit = (e) => {
+    e.preventDefault();
+    if (!trackId.trim()) return;
+    const cleanId = trackId.replace('#', '').trim();
+    navigate(`/track/${cleanId}`);
+  };
+
   return (
     <div className="landing-root">
-
-      {/* ── NAVBAR ──────────────────────────────────────────── */}
+      {/* ── Top Navbar ────────────────────────────────────────── */}
       <nav className="landing-nav">
         <div className="landing-nav-inner">
-          <div className="landing-brand">
-            <div className="landing-brand-icon">LM</div>
+          <div className="navbar-brand" onClick={() => navigate('/')}>
+            <div className="brand-icon-box">
+              <Package size={18} strokeWidth={2.4} />
+            </div>
             <span>LastMile</span>
           </div>
+
           <div className="landing-nav-links">
-            <a href="#services" className="landing-nav-link">Services</a>
-            <a href="#how-it-works" className="landing-nav-link">How it Works</a>
-            <a href="#stats" className="landing-nav-link">Why Us</a>
+            <a href="#features" className="landing-nav-link">Platform</a>
+            <a href="#how-it-works" className="landing-nav-link">How It Works</a>
+            <a href="#metrics" className="landing-nav-link">Capabilities</a>
           </div>
-          <div className="landing-nav-cta">
-            {dashboardLink && (
-              <Link to={dashboardLink} className="btn btn-ghost btn-sm" style={{ marginRight: 4 }}>Dashboard</Link>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {dashboardLink ? (
+              <Link to={dashboardLink} className="btn btn-primary btn-sm">
+                Dashboard <ArrowRight size={14} />
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="btn btn-ghost btn-sm">
+                  Log In
+                </Link>
+                <Link to="/register" className="btn btn-primary btn-sm">
+                  Get Started
+                </Link>
+              </>
             )}
-            <Link to="/login" className="btn btn-ghost btn-sm">Log In</Link>
-            <Link to="/register" className="btn btn-primary btn-sm">Sign Up</Link>
           </div>
         </div>
       </nav>
 
-      {/* ── HERO ────────────────────────────────────────────── */}
-      <section className="hero-section">
-        <div className="hero-bg">
-          <div className="hero-orb hero-orb-1" />
-          <div className="hero-orb hero-orb-2" />
-          <div className="hero-orb hero-orb-3" />
-          <div className="hero-grid" />
+      {/* ── Hero Section ──────────────────────────────────────── */}
+      <section className="landing-hero">
+        <div className="landing-hero-badge">
+          <span className="pill">NEW</span>
+          <span>Intelligent Last-Mile Logistics & Dispatch</span>
         </div>
 
-        <div className="hero-layout">
-          <div className="hero-content">
-            <div className="hero-badge">
-              <span className="hero-badge-dot" />
-              Intelligent Last-Mile Delivery Platform
-            </div>
+        <h1 className="landing-hero-title">
+          Effortless parcel delivery with <span className="landing-hero-title-highlight">smart dispatch</span>
+        </h1>
 
-            <h1 className="hero-title">
-              Deliver Smarter.<br />
-              <span className="hero-title-gradient">Track Everything.</span>
-            </h1>
+        <p className="landing-hero-desc">
+          Automate agent dispatch, calculate volumetric zone rates, and provide customers with live real-time shipment updates.
+        </p>
 
-            <p className="hero-subtitle">
-              A complete delivery management platform — instant pricing, smart agent dispatch,
-              real-time order tracking and multi-role dashboards. All in one place.
-            </p>
+        {/* ── Quick Tracking Box ──────────────────────────────── */}
+        <form className="hero-track-card" onSubmit={handleTrackSubmit}>
+          <Search size={18} className="text-slate-400" style={{ marginLeft: 8 }} />
+          <input
+            type="text"
+            className="hero-track-input"
+            placeholder="Enter Order ID to track shipment (e.g. 66c8d...)"
+            value={trackId}
+            onChange={(e) => setTrackId(e.target.value)}
+          />
+          <button type="submit" className="btn btn-blue btn-sm" style={{ padding: '8px 18px' }}>
+            Track Order
+          </button>
+        </form>
 
-            <div className="hero-actions">
-              <Link to={dashboardLink || '/register'} className="btn btn-primary btn-lg hero-btn-primary">
-                Get Started →
+        <div className="landing-hero-actions">
+          {dashboardLink ? (
+            <Link to={dashboardLink} className="btn btn-primary btn-lg">
+              Go to Dashboard <ArrowRight size={16} />
+            </Link>
+          ) : (
+            <>
+              <Link to="/register" className="btn btn-primary btn-lg">
+                Create Free Account <ArrowRight size={16} />
               </Link>
-              {!user && (
-                <Link to="/login" className="btn btn-ghost btn-lg">
-                  Log In
-                </Link>
-              )}
-            </div>
-
-            <div className="hero-trust">
-              <div className="hero-trust-avatars">
-                {['A','B','C','D'].map((l, i) => (
-                  <div key={i} className="hero-avatar" style={{ background: ['#6366f1','#06b6d4','#10b981','#f59e0b'][i] }}>{l}</div>
-                ))}
-              </div>
-              <span>Trusted by logistics teams worldwide</span>
-            </div>
-          </div>
-
-          <div className="hero-visual">
-            <div className="hero-image-frame">
-              <div className="hero-image-glow" />
-              <img
-                src="/hero_delivery.jpg"
-                alt="LastMile delivery network"
-                className="hero-image"
-                onError={e => { e.currentTarget.parentElement.classList.add('hero-image-error'); }}
-              />
-              {/* CSS art fallback */}
-              <div className="hero-css-art">
-                <div className="css-art-track" />
-                <div className="css-art-van">
-                  <div className="css-art-van-body" />
-                  <div className="css-art-van-wheel css-art-van-wheel-l" />
-                  <div className="css-art-van-wheel css-art-van-wheel-r" />
-                </div>
-                {[0,1,2,3].map(i => (
-                  <div key={i} className={`css-art-node css-art-node-${i}`} />
-                ))}
-                {[0,1,2].map(i => (
-                  <div key={i} className={`css-art-pulse css-art-pulse-${i}`} />
-                ))}
-              </div>
-            </div>
-
-            {/* Floating stat cards */}
-            <div className="hero-float-card hero-float-card-1">
-              <div className="hfc-dot" style={{ background: '#10b981' }} />
-              <div>
-                <div className="hfc-val">347</div>
-                <div className="hfc-label">Delivered Today</div>
-              </div>
-            </div>
-            <div className="hero-float-card hero-float-card-2">
-              <div className="hfc-dot" style={{ background: '#6366f1' }} />
-              <div>
-                <div className="hfc-val">1.3 min</div>
-                <div className="hfc-label">Avg. Assignment</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="hero-scroll-indicator">
-          <div className="hsi-inner" />
+              <Link to="/login" className="btn btn-secondary btn-lg">
+                Sign In to Portal
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
-      {/* ── STATS BAR ───────────────────────────────────────── */}
-      <section className="stats-bar-section" id="stats">
-        <div className="stats-bar-inner">
-          {stats.map((s, i) => (
-            <div key={i} className="stats-bar-item">
-              <div className="stats-bar-value">{s.value}</div>
-              <div className="stats-bar-label">{s.label}</div>
+      {/* ── Metrics Ribbon ────────────────────────────────────── */}
+      <section id="metrics" className="landing-metrics">
+        <div className="landing-metrics-grid">
+          <div>
+            <div className="metric-number">99.4%</div>
+            <div className="metric-label">On-Time Delivery Rate</div>
+          </div>
+          <div>
+            <div className="metric-number">&lt; 2 min</div>
+            <div className="metric-label">Auto-Agent Assignment</div>
+          </div>
+          <div>
+            <div className="metric-number">Multi-Zone</div>
+            <div className="metric-label">Dynamic Pincode Routing</div>
+          </div>
+          <div>
+            <div className="metric-number">100% Live</div>
+            <div className="metric-label">End-to-End Status Visibility</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features Section ──────────────────────────────────── */}
+      <section id="features" className="landing-section">
+        <div className="section-header">
+          <div className="section-eyebrow">Enterprise Features</div>
+          <h2 className="section-title">Built for speed, accuracy, and scale</h2>
+          <p className="section-subtitle">
+            From automated dispatching to zone pricing and courier routing, manage every stage of your delivery cycle.
+          </p>
+        </div>
+
+        <div className="features-grid">
+          {features.map((item, idx) => (
+            <div key={idx} className="feature-box">
+              <div className="feature-icon-wrap">
+                {item.icon}
+              </div>
+              <h3 className="feature-title">{item.title}</h3>
+              <p className="feature-desc">{item.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ── SERVICES ────────────────────────────────────────── */}
-      <section className="landing-section" id="services">
-        <div className="landing-section-inner">
-          <div className="landing-section-header">
-            <div className="landing-eyebrow">What We Offer</div>
-            <h2 className="landing-section-title">Everything Your Delivery Operation Needs</h2>
-            <p className="landing-section-subtitle">
-              From order creation to final delivery — every step is covered with intelligent automation.
-            </p>
-          </div>
-
-          <div className="services-grid">
-            {services.map((svc, i) => (
-              <div key={i} className="service-card">
-                <div className="service-icon" style={{ color: svc.accent, background: `${svc.accent}1a`, boxShadow: `0 0 0 1px ${svc.accent}30` }}>
-                  {svc.icon}
-                </div>
-                <h3 className="service-title">{svc.title}</h3>
-                <p className="service-desc">{svc.desc}</p>
-                <div className="service-line" style={{ background: `linear-gradient(90deg, ${svc.accent}, transparent)` }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ────────────────────────────────────── */}
-      <section className="landing-section landing-section-alt" id="how-it-works">
-        <div className="landing-section-inner">
-          <div className="landing-section-header">
-            <div className="landing-eyebrow">Process</div>
-            <h2 className="landing-section-title">Delivery in Three Simple Steps</h2>
-            <p className="landing-section-subtitle">
-              Place an order, let the system assign an agent, and track it live — effortlessly.
-            </p>
-          </div>
-
-          <div className="steps-row">
-            {steps.map((step, i) => (
-              <div key={i} className="step-card">
-                <div className="step-num-wrap">
-                  <div className="step-num">{step.num}</div>
-                  {i < steps.length - 1 && <div className="step-connector" />}
-                </div>
-                <h3 className="step-title">{step.title}</h3>
-                <p className="step-desc">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA BANNER ──────────────────────────────────────── */}
-      <section className="cta-section">
-        <div className="cta-orb cta-orb-1" />
-        <div className="cta-orb cta-orb-2" />
-        <div className="cta-inner">
-          <h2 className="cta-title">Ready to Modernise Your Deliveries?</h2>
-          <p className="cta-subtitle">
-            Join teams already using LastMile to automate dispatch, delight customers and scale operations.
+      {/* ── How It Works ──────────────────────────────────────── */}
+      <section id="how-it-works" className="landing-section" style={{ background: '#f8fafc', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
+        <div className="section-header">
+          <div className="section-eyebrow">Seamless Workflow</div>
+          <h2 className="section-title">How LastMile works</h2>
+          <p className="section-subtitle">
+            A frictionless three-step process connecting senders, dispatchers, and field delivery agents.
           </p>
-          <div className="cta-actions">
-            {dashboardLink ? (
-              <Link to={dashboardLink} className="btn btn-primary btn-lg">Open Dashboard →</Link>
-            ) : (
-              <>
-                <Link to="/register" className="btn btn-primary btn-lg cta-btn-main">Start for Free →</Link>
-                <Link to="/login" className="btn btn-ghost btn-lg">Log In</Link>
-              </>
-            )}
-          </div>
+        </div>
+
+        <div className="steps-container">
+          {steps.map((s, idx) => (
+            <div key={idx} className="step-card-modern">
+              <div className="step-number-badge">{s.step}</div>
+              <h3 className="feature-title">{s.title}</h3>
+              <p className="feature-desc">{s.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ── FOOTER ──────────────────────────────────────────── */}
+      {/* ── CTA Banner ────────────────────────────────────────── */}
+      <div className="container">
+        <section className="landing-cta-banner">
+          <h2 className="landing-cta-title">Ready to streamline your deliveries?</h2>
+          <p className="landing-cta-desc">
+            Sign in as customer, agent, or administrator to experience our intelligent last-mile routing engine.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <Link to="/register" className="btn btn-blue btn-lg" style={{ background: '#ffffff', color: '#0f172a', borderColor: '#ffffff' }}>
+              Get Started Free
+            </Link>
+            <Link to="/login" className="btn btn-ghost btn-lg" style={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.2)' }}>
+              Sign In
+            </Link>
+          </div>
+        </section>
+      </div>
+
+      {/* ── Footer ────────────────────────────────────────────── */}
       <footer className="landing-footer">
         <div className="landing-footer-inner">
-          <div className="footer-brand-col">
-            <div className="landing-brand">
-              <div className="landing-brand-icon" style={{ width: 30, height: 30, fontSize: 11, borderRadius: 7 }}>LM</div>
-              <span style={{ fontSize: 17, fontWeight: 700 }}>LastMile</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="brand-icon-box" style={{ width: 28, height: 28, fontSize: 11 }}>
+              LM
             </div>
-            <p className="footer-tagline">Intelligent last-mile delivery, end-to-end.</p>
+            <span style={{ fontWeight: 700, fontSize: 15 }}>LastMile Delivery</span>
           </div>
 
-          <div className="footer-links-wrap">
-            <div className="footer-col">
-              <div className="footer-col-title">Product</div>
-              <a href="#services" className="footer-link">Services</a>
-              <a href="#how-it-works" className="footer-link">How it Works</a>
-              <a href="#stats" className="footer-link">Why Us</a>
-            </div>
-            <div className="footer-col">
-              <div className="footer-col-title">Account</div>
-              <Link to="/login" className="footer-link">Log In</Link>
-              <Link to="/register" className="footer-link">Sign Up</Link>
-            </div>
-            <div className="footer-col">
-              <div className="footer-col-title">Roles</div>
-              <span className="footer-link-plain">Customer</span>
-              <span className="footer-link-plain">Delivery Agent</span>
-              <span className="footer-link-plain">Admin</span>
-            </div>
+          <div className="footer-nav">
+            <Link to="/login">Log In</Link>
+            <Link to="/register">Register</Link>
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How It Works</a>
           </div>
-        </div>
 
-        <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} LastMile Delivery. All rights reserved.</span>
-          <span className="footer-sep">·</span>
-          <span>Built for fast, reliable last-mile logistics.</span>
+          <div className="footer-copy">
+            © {new Date().getFullYear()} LastMile Delivery Tracker. All rights reserved.
+          </div>
         </div>
       </footer>
     </div>
