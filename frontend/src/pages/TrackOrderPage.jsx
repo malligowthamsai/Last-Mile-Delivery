@@ -1,192 +1,305 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { StatusBadge, STATUS_META, formatDate, shortId } from '../lib/utils.jsx';
+import { StatusBadge, STATUS_META, formatDate, shortId, formatCurrency } from '../lib/utils.jsx';
+import { 
+  Package, 
+  MapPin, 
+  Clock, 
+  CheckCircle2, 
+  AlertCircle, 
+  ArrowRight, 
+  Truck, 
+  ArrowLeft,
+  Calendar,
+  Layers,
+  Phone
+} from 'lucide-react';
+
+const TRACKING_STEPS = [
+  { key: 'CREATED', label: 'Order Placed' },
+  { key: 'AGENT_ASSIGNED', label: 'Agent Assigned' },
+  { key: 'PICKED_UP', label: 'Picked Up' },
+  { key: 'IN_TRANSIT', label: 'In Transit' },
+  { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
+  { key: 'DELIVERED', label: 'Delivered' }
+];
 
 export default function TrackOrderPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     api.get(`/orders/${id}/track`)
-      .then(res => setOrder(res.data))
-      .catch(err => {
+      .then((res) => setOrder(res.data))
+      .catch((err) => {
         if (err?.response?.status === 404) setNotFound(true);
       })
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
-      <div style={{ textAlign: 'center' }}>
-        <span className="spinner" style={{ width: 40, height: 40 }} />
-        <div style={{ color: 'var(--text-muted)', marginTop: 12 }}>Loading tracking info...</div>
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <span className="spinner" style={{ width: 36, height: 36 }} />
+        <span>Loading shipment status...</span>
       </div>
-    </div>
-  );
+    );
+  }
 
-  if (notFound) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
-      <div style={{ textAlign: 'center', maxWidth: 400 }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}></div>
-        <h2 style={{ color: 'var(--text-primary)', marginBottom: 8 }}>Order Not Found</h2>
-        <p style={{ color: 'var(--text-muted)' }}>The tracking link may be invalid or expired.</p>
-        <Link to="/login" style={{ display: 'inline-block', marginTop: 20 }} className="btn btn-primary">
-          Login to Your Account →
-        </Link>
+  if (notFound || !order) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div className="card" style={{ maxWidth: 440, textAlign: 'center', padding: '48px 32px' }}>
+          <div className="empty-icon-wrap" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>
+            <AlertCircle size={28} />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Order Not Found</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>
+            We couldn't find any shipment matching ID <strong style={{ color: 'var(--text-primary)' }}>{id}</strong>. Please verify the tracking number.
+          </p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button className="btn btn-secondary" onClick={() => navigate('/')}>
+              Back to Home
+            </button>
+            <Link to="/login" className="btn btn-primary">
+              Log In
+            </Link>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  const currentStatusMeta = STATUS_META[order.status] || { icon: '?', label: order.status };
-  const isTerminal = ['DELIVERED', 'CANCELLED'].includes(order.status);
+  const currentStatusIndex = TRACKING_STEPS.findIndex((s) => s.key === order.status);
+  const isDelivered = order.status === 'DELIVERED';
   const isFailed = order.status === 'FAILED';
+  const isCancelled = order.status === 'CANCELLED';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '0 0 60px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', paddingBottom: 64 }}>
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div style={{
-        background: 'linear-gradient(135deg, var(--primary) 0%, #1e40af 100%)',
-        padding: '24px 0',
-        marginBottom: 32
-      }}>
-        <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
-            LastMile Delivery Tracker
+      <header className="navbar">
+        <div className="navbar-brand" onClick={() => navigate('/')}>
+          <div className="brand-icon-box">
+            <Package size={18} strokeWidth={2.4} />
           </div>
-          <h1 style={{ color: 'white', margin: 0, fontSize: 24, fontWeight: 700 }}>
-            Order {shortId(order.id)}
-          </h1>
-          <div style={{ marginTop: 10 }}>
-            <StatusBadge status={order.status} />
-          </div>
+          <span>LastMile Tracker</span>
         </div>
-      </div>
+        <Link to="/login" className="btn btn-secondary btn-sm">
+          Portal Login
+        </Link>
+      </header>
 
-      <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 24px' }}>
+      <div className="page-wrapper" style={{ maxWidth: 840 }}>
+        <div style={{ marginBottom: 20 }}>
+          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+            <ArrowLeft size={14} /> Back to Search
+          </Link>
+        </div>
 
-        {/* ── Current Status Card ─────────────────────────────── */}
-        <div className="card" style={{ marginBottom: 24, borderColor: isTerminal ? 'rgba(16,185,129,0.3)' : isFailed ? 'rgba(239,68,68,0.3)' : 'rgba(99,102,241,0.3)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%',
-              background: isTerminal ? 'rgba(16,185,129,0.15)' : isFailed ? 'rgba(239,68,68,0.15)' : 'rgba(99,102,241,0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 26
-            }}>
-              {currentStatusMeta.icon}
-            </div>
+        {/* ── Status Hero Card ────────────────────────────────── */}
+        <div className="card" style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, borderBottom: '1px solid var(--border-subtle)', paddingBottom: 20 }}>
             <div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
-                {currentStatusMeta.label}
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Shipment Tracking
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-                Last updated: {formatDate(order.updatedAt)}
+              <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', marginTop: 4, letterSpacing: '-0.02em' }}>
+                Order {shortId(order.id)}
+              </h1>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+                Booked on {formatDate(order.createdAt)}
               </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <StatusBadge status={order.status} />
+              {order.expectedDelivery && (
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+                  Est. Delivery: {formatDate(order.expectedDelivery)}
+                </div>
+              )}
             </div>
           </div>
+
+          {/* ── Visual Progress Stepper ──────────────────────── */}
+          {!isCancelled && !isFailed && (
+            <div style={{ padding: '24px 0 12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${TRACKING_STEPS.length}, 1fr)`, gap: 8, position: 'relative' }}>
+                {TRACKING_STEPS.map((s, idx) => {
+                  const isDone = currentStatusIndex >= idx;
+                  const isCurrent = order.status === s.key;
+                  return (
+                    <div key={s.key} style={{ textAlign: 'center', position: 'relative' }}>
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          background: isCurrent ? 'var(--primary)' : isDone ? 'var(--brand-dark)' : 'var(--bg-subtle)',
+                          color: isDone ? '#ffffff' : 'var(--text-muted)',
+                          border: `2px solid ${isCurrent ? 'var(--primary)' : isDone ? 'var(--brand-dark)' : 'var(--border)'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          margin: '0 auto 8px',
+                          fontSize: 12,
+                          fontWeight: 700
+                        }}
+                      >
+                        {isDone ? <CheckCircle2 size={14} /> : idx + 1}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                        {s.label}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {isFailed && (
-            <div style={{
-              marginTop: 16, padding: '12px 16px',
-              background: 'rgba(239,68,68,0.08)',
-              borderRadius: 'var(--radius)',
-              border: '1px solid rgba(239,68,68,0.2)',
-              fontSize: 14, color: 'var(--danger)'
-            }}>
-              Delivery attempt failed. Please login to reschedule a new delivery date.
-            </div>
-          )}
-
-          {order.scheduledDate && order.status === 'RESCHEDULED' && (
-            <div style={{
-              marginTop: 16, padding: '12px 16px',
-              background: 'rgba(245,158,11,0.08)',
-              borderRadius: 'var(--radius)',
-              border: '1px solid rgba(245,158,11,0.2)',
-              fontSize: 14, color: '#f59e0b'
-            }}>
-              Rescheduled for: {formatDate(order.scheduledDate)}
+            <div className="alert alert-error" style={{ marginTop: 16 }}>
+              <AlertCircle size={18} />
+              <div>
+                <strong>Delivery Attempt Failed.</strong> The delivery agent could not complete the dropoff. If you are the customer, please sign in to reschedule.
+              </div>
             </div>
           )}
         </div>
 
-        {/* ── Route Info ──────────────────────────────────────── */}
-        <div className="card" style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ textAlign: 'center', flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase' }}>Pickup Zone</div>
-              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{order.pickupZone?.name || order.pickupPincode}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>PIN: {order.pickupPincode}</div>
+        {/* ── Route & Location Details ───────────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, color: 'var(--text-secondary)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>
+              <MapPin size={15} className="text-slate-500" />
+              <span>Pickup Address</span>
             </div>
-            <div style={{ fontSize: 24, color: 'var(--primary)', padding: '0 16px' }}>→</div>
-            <div style={{ textAlign: 'center', flex: 1 }}>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase' }}>Delivery Zone</div>
-              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{order.dropZone?.name || order.dropPincode}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>PIN: {order.dropPincode}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+              {order.pickupAddress}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
+              Pincode: {order.pickupPincode} {order.pickupZone && `• Zone: ${order.pickupZone.name}`}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 16, justifyContent: 'center' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              {order.orderType} · {order.paymentType}
-            </span>
+
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, color: 'var(--text-secondary)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>
+              <MapPin size={15} className="text-blue-600" />
+              <span>Drop Address</span>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+              {order.dropAddress}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
+              Pincode: {order.dropPincode} {order.dropZone && `• Zone: ${order.dropZone.name}`}
+            </div>
           </div>
         </div>
 
-        {/* ── Tracking Timeline ────────────────────────────────── */}
+        {/* ── Package Specs & Courier Info ───────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 24 }}>
+          <div className="card">
+            <h3 className="card-title" style={{ marginBottom: 16 }}>Package Information</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Dimensions (L×B×H)</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>
+                  {order.length} × {order.breadth} × {order.height} cm
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Actual Weight</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>
+                  {order.actualWeight} kg
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Volumetric Wt</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>
+                  {order.volumetricWeight} kg
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Order Type</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>
+                  {order.orderType}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Payment</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>
+                  {order.paymentType}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Total Charge</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginTop: 2 }}>
+                  {formatCurrency(order.totalCharge)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="card-title" style={{ marginBottom: 16 }}>Assigned Courier</h3>
+            {order.assignedAgent ? (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <div className="user-avatar-circle" style={{ width: 36, height: 36 }}>
+                    {order.assignedAgent.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>
+                      {order.assignedAgent.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Delivery Partner</div>
+                  </div>
+                </div>
+                {order.assignedAgent.phone && (
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Phone size={13} /> {order.assignedAgent.phone}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                Agent dispatch in progress. A courier will be assigned shortly.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Status History Timeline ────────────────────────── */}
         <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Tracking Timeline</h3>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {order.trackingHistory.length} update{order.trackingHistory.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-
-          {order.trackingHistory.length === 0 ? (
-            <div className="empty-state" style={{ padding: 30 }}>
-              <p>No tracking updates yet</p>
+          <h3 className="card-title" style={{ marginBottom: 20 }}>Tracking History</h3>
+          {order.statusHistory && order.statusHistory.length > 0 ? (
+            <div className="timeline">
+              {order.statusHistory.map((h, i) => (
+                <div key={i} className="timeline-item">
+                  <div className={`timeline-dot ${i === order.statusHistory.length - 1 ? 'active' : 'completed'}`}>
+                    <CheckCircle2 size={15} />
+                  </div>
+                  <div className="timeline-content">
+                    <div className="timeline-status">
+                      {STATUS_META[h.status]?.label || h.status}
+                    </div>
+                    <div className="timeline-time">{formatDate(h.createdAt || h.timestamp)}</div>
+                    {h.note && <div className="timeline-note">{h.note}</div>}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="timeline">
-              {[...order.trackingHistory].reverse().map((entry, i) => {
-                const meta = STATUS_META[entry.status] || { icon: '?', color: 'created' };
-                const isLatest = i === 0;
-                return (
-                  <div className="timeline-item" key={entry.id}>
-                    <div className="timeline-dot" style={{
-                      background: isLatest ? 'var(--primary)' : 'var(--bg-elevated)',
-                      border: `2px solid ${isLatest ? 'var(--primary)' : 'var(--border)'}`,
-                      color: isLatest ? 'white' : 'var(--text-secondary)'
-                    }}>
-                      {meta.icon}
-                    </div>
-                    <div className="timeline-content">
-                      <div className="timeline-status">{STATUS_META[entry.status]?.label || entry.status}</div>
-                      <div className="timeline-time">{formatDate(entry.timestamp)}</div>
-                      {entry.note && <div className="timeline-note">{entry.note}</div>}
-                      {entry.changedByRole && (
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                          Updated by: {entry.changedByRole}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>No updates logged yet.</div>
           )}
-        </div>
-
-        {/* ── Login CTA ────────────────────────────────────────── */}
-        <div style={{ textAlign: 'center', marginTop: 32 }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 12 }}>
-            Have an account? Login to manage your order, reschedule deliveries, and view full details.
-          </p>
-          <Link to="/login" className="btn btn-primary">
-            Login to Your Account →
-          </Link>
         </div>
       </div>
     </div>
